@@ -20,7 +20,17 @@ const RESULTS_DEFAULT_PCT = 38;
 function App() {
   const [currentView, setCurrentView] = useState('editor');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);   // mobile drawer
-  const [isSidebarVisible, setIsSidebarVisible] = useState(true); // desktop hide
+  const [isSidebarVisible, setIsSidebarVisible] = useState(window.innerWidth > 768); // desktop hide
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
   const [isResultsVisible, setIsResultsVisible] = useState(false);
   const [resultsPct, setResultsPct] = useState(RESULTS_DEFAULT_PCT); // % of main height for results
@@ -170,7 +180,7 @@ function App() {
     }
   };
 
-  const handleTableClick = (tableName) => setQuery(`SELECT * FROM ${tableName} LIMIT 100;`);
+  const handleTableClick = (tableName) => setQuery(`SELECT * FROM ${tableName} LIMIT 10;`);
   const handleRefresh = async () => {
     setIsLoading(true);
     await fetchSchemas();
@@ -208,7 +218,7 @@ function App() {
             }} 
             title={isSidebarVisible ? "Hide sidebar" : "Show sidebar"}
           >
-            {isSidebarVisible ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
+            {isMobile ? <Menu size={20} /> : (isSidebarVisible ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />)}
           </button>
 
           {/* Results Toggle */}
@@ -225,7 +235,7 @@ function App() {
 
       <div className="app-main">
         {/* ── Sidebar ───────────────────────────────────────────────── */}
-        {isSidebarVisible && (
+        {(isSidebarVisible || isMobile) && (
           <Sidebar
             tables={tables}
             onTableClick={handleTableClick}
