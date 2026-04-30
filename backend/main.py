@@ -273,6 +273,8 @@ def delete_file(file_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/ai/chat/history")
 def get_chat_history(db: Session = Depends(get_db)):
     try:
@@ -288,21 +290,16 @@ def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
     from ai_service import chat_sql_expert
     try:
         ensure_storage_schema(db)
-        # Fetch last 10 messages for context
         result = db.execute(text("SELECT role, content FROM sql_pro_storage.chat_history ORDER BY id DESC LIMIT 10"))
         history = [{"role": row[0], "content": row[1]} for row in result]
         history.reverse()
         
-        # Add new user message
         history.append({"role": "user", "content": request.message})
         
-        # Save user message to DB
         db.execute(text("INSERT INTO sql_pro_storage.chat_history (role, content) VALUES ('user', :msg)"), {"msg": request.message})
         
-        # Call AI
         ai_response = chat_sql_expert(history)
         
-        # Save AI response to DB
         db.execute(text("INSERT INTO sql_pro_storage.chat_history (role, content) VALUES ('assistant', :msg)"), {"msg": ai_response})
         db.commit()
         

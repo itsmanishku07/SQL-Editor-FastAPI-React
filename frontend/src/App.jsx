@@ -15,8 +15,9 @@ import './index.css';
 const SIDEBAR_MIN = 180;
 const SIDEBAR_MAX = 520;
 const SIDEBAR_DEFAULT = 280;
-const CHAT_MIN = 250;
+const CHAT_MIN = 300;
 const CHAT_MAX = 600;
+const CHAT_DEFAULT = 650;
 const RESULTS_MIN_PCT = 12;
 const RESULTS_MAX_PCT = 75;
 const RESULTS_DEFAULT_PCT = 38;
@@ -54,7 +55,7 @@ function App() {
   const [previewTable, setPreviewTable] = useState(null); // table name being previewed
   const [isAiWizardOpen, setIsAiWizardOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatWidth, setChatWidth] = useState(350);
+  const [chatWidth, setChatWidth] = useState(CHAT_DEFAULT);
   const [enableSuggestions, setEnableSuggestions] = useState(true);
 
   const mainRef = useRef(null);
@@ -237,21 +238,21 @@ function App() {
           <button className="icon-btn" onClick={() => setIsSettingsOpen(true)} title="Settings">
             <Settings size={20} />
           </button>
-          
+
           {/* Sidebar Toggle (Desktop + Mobile) */}
-          <button 
-            className="icon-btn" 
+          <button
+            className="icon-btn"
             onClick={() => {
               if (window.innerWidth <= 768) setIsSidebarOpen(true);
               else setIsSidebarVisible(!isSidebarVisible);
-            }} 
+            }}
             title={isSidebarVisible ? "Hide sidebar" : "Show sidebar"}
           >
             {isMobile ? <Menu size={20} /> : (isSidebarVisible ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />)}
           </button>
 
           {/* Results Toggle */}
-          <button 
+          <button
             className={`icon-btn ${isResultsVisible ? 'active' : ''}`}
             onClick={() => setIsResultsVisible(!isResultsVisible)}
             title={isResultsVisible ? "Hide results" : "Show results"}
@@ -259,7 +260,7 @@ function App() {
             <Terminal size={20} />
           </button>
 
-          <button 
+          <button
             className={`icon-btn ${isChatOpen ? 'active' : ''}`}
             onClick={() => setIsChatOpen(!isChatOpen)}
             title="SQL Chat Assistant"
@@ -268,7 +269,7 @@ function App() {
           </button>
 
           {/* AI Generate Button */}
-          <button 
+          <button
             className="icon-btn ai-btn"
             onClick={() => setIsAiWizardOpen(true)}
             title="AI Table Generator"
@@ -301,65 +302,65 @@ function App() {
           />
         )}
 
-      {/* ── Sidebar Resize Handle (desktop only) ──────────────────── */}
-      {isSidebarVisible && (
-        <div
-          className="resize-handle-v"
-          onMouseDown={startSidebarDrag}
-          title="Drag to resize sidebar"
-        />
-      )}
-
-      {/* ── Main Content ──────────────────────────────────────────── */}
-        <div className="main-content-wrapper">
-          <div className="app-content" ref={mainRef}>
-        {currentView === 'editor' ? (
-          <>
-            {/* Editor */}
-            <div
-              className="editor-section"
-              style={{ height: `${editorHeightPct}%`, flex: 'none' }}
-            >
-              <SQLEditor
-                query={query}
-                setQuery={setQuery}
-                onExecute={handleExecute}
-                onSave={() => setIsSaveOpen(true)}
-                isLoading={isLoading}
-                schemaDetails={schemaDetails}
-                enableSuggestions={enableSuggestions}
-              />
-            </div>
-
-            {/* Horizontal drag handle between editor and results */}
-            {isResultsVisible && (
-              <div
-                className="resize-handle-h"
-                onMouseDown={startSplitDrag}
-                title="Drag to resize"
-              />
-            )}
-
-            {/* Results */}
-            {isResultsVisible && (
-              <div
-                className="results-wrapper"
-                style={{ height: `${resultsPct}%`, flex: 'none' }}
-              >
-                <ResultsTable
-                  results={results}
-                  error={error}
-                  onHide={() => setIsResultsVisible(false)}
-                />
-              </div>
-            )}
-          </>
-        ) : (
-          <SavedFilesPage
-            onBack={() => setCurrentView('editor')}
-            onLoadIntoEditor={handleLoadFromFile}
+        {/* ── Sidebar Resize Handle (desktop only) ──────────────────── */}
+        {isSidebarVisible && (
+          <div
+            className="resize-handle-v"
+            onMouseDown={startSidebarDrag}
+            title="Drag to resize sidebar"
           />
         )}
+
+        {/* ── Main Content ──────────────────────────────────────────── */}
+        <div className="main-content-wrapper">
+          <div className="app-content" ref={mainRef}>
+            {currentView === 'editor' ? (
+              <>
+                {/* Editor */}
+                <div
+                  className="editor-section"
+                  style={{ height: `${editorHeightPct}%`, flex: 'none' }}
+                >
+                  <SQLEditor
+                    query={query}
+                    setQuery={setQuery}
+                    onExecute={handleExecute}
+                    onSave={() => setIsSaveOpen(true)}
+                    isLoading={isLoading}
+                    schemaDetails={schemaDetails}
+                    enableSuggestions={enableSuggestions}
+                  />
+                </div>
+
+                {/* Horizontal drag handle between editor and results */}
+                {isResultsVisible && (
+                  <div
+                    className="resize-handle-h"
+                    onMouseDown={startSplitDrag}
+                    title="Drag to resize"
+                  />
+                )}
+
+                {/* Results */}
+                {isResultsVisible && (
+                  <div
+                    className="results-wrapper"
+                    style={{ height: `${resultsPct}%`, flex: 'none' }}
+                  >
+                    <ResultsTable
+                      results={results}
+                      error={error}
+                      onHide={() => setIsResultsVisible(false)}
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              <SavedFilesPage
+                onBack={() => setCurrentView('editor')}
+                onLoadIntoEditor={handleLoadFromFile}
+              />
+            )}
           </div>
           {isChatOpen && (
             <div
@@ -368,9 +369,9 @@ function App() {
               title="Drag to resize chat"
             />
           )}
-          <ChatPanel 
-            isOpen={isChatOpen} 
-            onClose={() => setIsChatOpen(false)} 
+          <ChatPanel
+            isOpen={isChatOpen}
+            onClose={() => setIsChatOpen(false)}
             style={{ width: chatWidth, minWidth: chatWidth, maxWidth: chatWidth }}
           />
         </div>

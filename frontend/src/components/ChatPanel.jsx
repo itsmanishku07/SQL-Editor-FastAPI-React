@@ -1,6 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, Trash2, Bot, User, RefreshCw, MessageSquare } from 'lucide-react';
+import { X, Send, Trash2, Bot, User, RefreshCw, MessageSquare, Copy, Check } from 'lucide-react';
 import { aiChat, getAiChatHistory, clearAiChatHistory } from '../api';
+
+const CopyButton = ({ text }) => {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button className="chat-copy-btn" onClick={handleCopy} title="Copy code">
+      {copied ? <Check size={14} /> : <Copy size={14} />}
+    </button>
+  );
+};
 
 const ChatPanel = ({ isOpen, onClose, style }) => {
   const [messages, setMessages] = useState([]);
@@ -58,8 +72,6 @@ const ChatPanel = ({ isOpen, onClose, style }) => {
     }
   };
 
-  if (!isOpen) return null;
-
   const renderContent = (content) => {
     // 1. Split by code blocks first
     const parts = content.split(/(```sql[\s\S]*?```|```[\s\S]*?```)/g);
@@ -68,9 +80,12 @@ const ChatPanel = ({ isOpen, onClose, style }) => {
       if (part.startsWith('```')) {
         const code = part.replace(/```sql|```/g, '').trim();
         return (
-          <pre key={index} className="chat-code-block">
-            <code>{code}</code>
-          </pre>
+          <div key={index} className="chat-code-wrapper">
+            <pre className="chat-code-block">
+              <code>{code}</code>
+            </pre>
+            <CopyButton text={code} />
+          </div>
         );
       }
 
@@ -118,6 +133,8 @@ const ChatPanel = ({ isOpen, onClose, style }) => {
       return <div key={index} className="text-content">{lines}</div>;
     });
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="chat-panel" style={style}>

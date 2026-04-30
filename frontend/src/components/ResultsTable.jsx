@@ -57,11 +57,7 @@ const ResultsTable = ({ results, error, onHide }) => {
         Results <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>({rows.length} rows)</span>
       </Header>
       <div className="results-content">
-        {rows.length === 0 ? (
-          <div className="empty-state">
-            <p>Query executed successfully. No rows returned.</p>
-          </div>
-        ) : (
+        {columns.length > 0 ? (
           <table>
             <thead>
               <tr>
@@ -69,15 +65,27 @@ const ResultsTable = ({ results, error, onHide }) => {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, ri) => (
-                <tr key={ri}>
-                  {columns.map((col, ci) => (
-                    <td key={ci}>{row[col] !== null ? String(row[col]) : <em>null</em>}</td>
-                  ))}
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={columns.length} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                    No rows returned
+                  </td>
                 </tr>
-              ))}
+              ) : (
+                rows.map((row, ri) => (
+                  <tr key={ri}>
+                    {columns.map((col, ci) => (
+                      <td key={ci}>{row[col] !== null ? String(row[col]) : <em>null</em>}</td>
+                    ))}
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
+        ) : (
+          <div className="empty-state">
+            <p>Query executed successfully. No data to display.</p>
+          </div>
         )}
       </div>
     </section>

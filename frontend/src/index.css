@@ -1444,13 +1444,13 @@ input:checked + .slider:before {
 }
 
 .chat-panel {
-  width: 350px;
   background: var(--bg-tertiary);
   border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   transition: width 0.1s ease;
   z-index: 50;
+  height: 100%;
 }
 
 .chat-resize-handle {
@@ -1544,8 +1544,9 @@ input:checked + .slider:before {
   font-size: 0.875rem;
   line-height: 1.5;
   color: var(--text-primary);
-  white-space: pre-wrap;
-  word-break: break-word;
+  max-width: 85%;
+  word-wrap: break-word;
+  min-width: 0; /* Important for horizontal scrolling of children */
 }
 
 .chat-message.user .message-content {
@@ -1553,17 +1554,50 @@ input:checked + .slider:before {
   color: white;
 }
 
+.chat-code-wrapper {
+  position: relative;
+  margin: 0.75rem 0;
+  overflow: visible; /* Crucial to show floating button */
+}
+
 .chat-code-block {
-  background: #0f172a;
-  padding: 0.75rem;
-  border-radius: 6px;
-  margin: 0.5rem 0;
+  background: #0b0e14;
+  padding: 1rem;
+  padding-right: 3rem; /* Extra space for the button */
+  border-radius: 8px;
   font-family: 'Fira Code', monospace;
   font-size: 0.8rem;
-  color: #94a3b8;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   overflow-x: auto;
-  max-width: 100%;
+  width: 100%;
+  display: block;
+}
+
+.chat-copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.chat-copy-btn:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  transform: translateY(-1px);
 }
 
 .chat-code-block code {
@@ -1740,4 +1774,68 @@ input:checked + .slider:before {
 
 .confirm-delete:hover {
   filter: brightness(1.1);
+}
+
+/* ── CodeMirror Autocomplete Styling ─────────────────────── */
+.cm-tooltip.cm-tooltip-autocomplete {
+  background: var(--bg-tertiary) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+  overflow: hidden !important;
+  backdrop-filter: blur(12px) !important;
+  padding: 4px !important;
+  min-width: 240px !important;
+  z-index: 1000 !important;
+}
+
+.cm-tooltip-autocomplete ul {
+  font-family: 'Inter', sans-serif !important;
+  max-height: 250px !important;
+}
+
+.cm-tooltip-autocomplete ul li {
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 0.85rem !important;
+  color: var(--text-secondary) !important;
+  transition: all 0.2s ease !important;
+}
+
+.cm-tooltip-autocomplete ul li[aria-selected] {
+  background: rgba(99, 102, 241, 0.2) !important;
+  color: var(--text-primary) !important;
+}
+
+.cm-completionLabel {
+  font-weight: 500 !important;
+  color: var(--text-primary) !important;
+}
+
+.cm-completionMatchedText {
+  color: var(--accent) !important;
+  text-decoration: none !important;
+  font-weight: 700 !important;
+}
+
+.cm-completionDetail {
+  margin-left: auto !important;
+  font-size: 0.75rem !important;
+  color: var(--text-secondary) !important;
+  font-style: italic !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+}
+
+/* Custom scrollbar for autocomplete */
+.cm-tooltip-autocomplete ul::-webkit-scrollbar {
+  width: 4px;
+}
+.cm-tooltip-autocomplete ul::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 10px;
 }

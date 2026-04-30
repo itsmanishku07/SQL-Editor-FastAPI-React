@@ -133,11 +133,7 @@ const TablePreviewModal = ({ tableName, schema, onClose }) => {
 
           {data && !isLoading && (
             <div className="preview-table-wrap">
-              {data.rows.length === 0 ? (
-                <div className="empty-state" style={{ height: '100%' }}>
-                  <p>This table has no rows.</p>
-                </div>
-              ) : (
+              {data.columns.length > 0 ? (
                 <table className="preview-table">
                   <thead>
                     <tr>
@@ -147,19 +143,31 @@ const TablePreviewModal = ({ tableName, schema, onClose }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.rows.map((row, ri) => (
-                      <tr key={ri}>
-                        {data.columns.map((col, ci) => (
-                          <td key={ci}>
-                            {row[col] === null
-                              ? <em className="null-cell">null</em>
-                              : String(row[col])}
-                          </td>
-                        ))}
+                    {data.rows.length === 0 ? (
+                      <tr>
+                        <td colSpan={data.columns.length} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+                          This table has no rows.
+                        </td>
                       </tr>
-                    ))}
+                    ) : (
+                      data.rows.map((row, ri) => (
+                        <tr key={ri}>
+                          {data.columns.map((col, ci) => (
+                            <td key={ci}>
+                              {row[col] === null
+                                ? <em className="null-cell">null</em>
+                                : String(row[col])}
+                            </td>
+                          ))}
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
+              ) : (
+                <div className="empty-state" style={{ height: '100%' }}>
+                  <p>Query executed successfully. No data available.</p>
+                </div>
               )}
             </div>
           )}
