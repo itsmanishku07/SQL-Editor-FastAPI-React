@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Database, Table, Settings, FileText, X, PanelLeftClose, Eye, ChevronDown, Check } from 'lucide-react';
+import { Database, Table, Settings, FileText, X, PanelLeftClose, Eye, ChevronDown, Check, RefreshCw } from 'lucide-react';
 
 const Sidebar = ({
   tables, onTableClick, schemas, selectedSchema, onSchemaChange,
   onOpenSettings, currentView, onViewChange,
-  isOpen, onClose, onHide, style, onPreviewTable,
+  isOpen, onClose, onHide, style, onPreviewTable, onRefresh, isLoading,
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -94,8 +94,20 @@ const Sidebar = ({
 
             {/* Tables Header */}
             <div className="tables-label">
-              <Table size={13} /> Tables
-              <span className="tables-count">{tables.length}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Table size={13} /> Tables
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <button 
+                  className="sidebar-refresh-btn" 
+                  onClick={onRefresh}
+                  disabled={isLoading}
+                  title="Refresh tables"
+                >
+                  <RefreshCw size={12} className={isLoading ? 'spin' : ''} />
+                </button>
+                <span className="tables-count">{tables.length}</span>
+              </div>
             </div>
 
             {/* Table List */}

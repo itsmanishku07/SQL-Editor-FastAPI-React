@@ -7,7 +7,7 @@ import SaveModal from './components/SaveModal';
 import SavedFilesPage from './components/SavedFilesPage';
 import TablePreviewModal from './components/TablePreviewModal';
 import { getTables, getSchemas, getSchemaDetails, executeQuery } from './api';
-import { Database, Settings, PanelLeftClose, PanelLeftOpen, Menu } from 'lucide-react';
+import { Database, Settings, PanelLeftClose, PanelLeftOpen, Menu, Terminal } from 'lucide-react';
 import './index.css';
 
 const SIDEBAR_MIN = 180;
@@ -150,8 +150,19 @@ function App() {
     setIsResultsVisible(true); // auto-show results panel
     try {
       const data = await executeQuery(toRun, selectedSchema);
-      if (data.error) setError(data.error);
-      else setResults(data);
+      if (data.error) {
+        setError(data.error);
+      } else {
+        setResults(data);
+        // Auto-refresh sidebar if query modifies schema (DDL)
+        const ddlRegex = /^\s*(CREATE|DROP|ALTER|TRUNCATE|RENAME|GRANT|REVOKE)\b/i;
+        if (ddlRegex.test(toRun)) {
+          // We don't set global loading again to avoid flicker, just fetch
+          fetchSchemas().then(() => {
+            if (selectedSchema) fetchTables(selectedSchema);
+          });
+        }
+      }
     } catch (err) {
       setError(err.response?.data?.detail || err.message || 'An error occurred.');
     } finally {
@@ -160,6 +171,13 @@ function App() {
   };
 
   const handleTableClick = (tableName) => setQuery(`SELECT * FROM ${tableName} LIMIT 100;`);
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    await fetchSchemas();
+    if (selectedSchema) await fetchTables(selectedSchema);
+    setIsLoading(false);
+  };
+
   const handleDbSaved = async () => { await fetchSchemas(); if (selectedSchema) await fetchTables(selectedSchema); };
   const handleLoadFromFile = (content) => { setQuery(content); setCurrentView('editor'); };
 
@@ -192,6 +210,15 @@ function App() {
           >
             {isSidebarVisible ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
           </button>
+
+          {/* Results Toggle */}
+          <button 
+            className={`icon-btn ${isResultsVisible ? 'active' : ''}`}
+            onClick={() => setIsResultsVisible(!isResultsVisible)}
+            title={isResultsVisible ? "Hide results" : "Show results"}
+          >
+            <Terminal size={20} />
+          </button>
         </div>
       </header>
 
@@ -213,6 +240,8 @@ function App() {
             onHide={() => setIsSidebarVisible(false)}
             style={{ width: sidebarWidth, minWidth: sidebarWidth, maxWidth: sidebarWidth }}
             onPreviewTable={(table) => setPreviewTable(table)}
+            onRefresh={handleRefresh}
+            isLoading={isLoading}
           />
         )}
 

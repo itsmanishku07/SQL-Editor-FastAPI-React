@@ -668,6 +668,11 @@ tr:hover td {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
+.icon-btn.active {
+  color: var(--accent);
+  background-color: rgba(99, 102, 241, 0.15);
+}
+
 /* Toggle Switch */
 .toggle-switch {
   position: relative;
@@ -921,13 +926,37 @@ input:checked + .slider:before {
 .tables-label {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.75rem 1.5rem 0.4rem;
-  font-size: 0.7rem;
-  font-weight: 600;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
   color: var(--text-secondary);
+  opacity: 0.8;
+}
+
+.sidebar-refresh-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.sidebar-refresh-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--accent);
+}
+
+.sidebar-refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .tables-count {
