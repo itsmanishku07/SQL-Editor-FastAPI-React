@@ -31,6 +31,21 @@ class QueryResponse(BaseModel):
 class SettingsUpdate(BaseModel):
     db_url: str
 
+class AiSettingsUpdate(BaseModel):
+    host: str
+    token: str
+    model: str
+
+class AiGenerateRequest(BaseModel):
+    prompt: str
+
+class AiDataRequest(BaseModel):
+    schema_sql: str
+    count: int = 10
+
+class ChatRequest(BaseModel):
+    message: str
+
 @app.get("/")
 def read_root():
     return {"message": "Postgres Query API is running"}
@@ -53,6 +68,38 @@ def update_db_url_endpoint(settings: SettingsUpdate):
         return {"success": True, "message": "Database connection updated successfully."}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to connect: {str(e)}")
+@app.get("/settings/ai")
+def get_ai_settings():
+    from database import DATABRICKS_HOST, DATABRICKS_TOKEN, DATABRICKS_MODEL_ENDPOINT
+    return {
+        "host": DATABRICKS_HOST,
+        "token": DATABRICKS_TOKEN,
+        "model": DATABRICKS_MODEL_ENDPOINT
+    }
+
+@app.post("/settings/ai")
+def update_ai_settings_endpoint(settings: AiSettingsUpdate):
+    from database import update_ai_settings
+    update_ai_settings(settings.host, settings.token, settings.model)
+    return {"success": True, "message": "AI settings updated successfully."}
+
+@app.post("/ai/generate-schema")
+def ai_generate_schema_endpoint(request: AiGenerateRequest):
+    from ai_service import generate_schema_sql
+    try:
+        sql = generate_schema_sql(request.prompt)
+        return {"sql": sql}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/ai/generate-data")
+def ai_generate_data_endpoint(request: AiDataRequest):
+    from ai_service import generate_data_sql
+    try:
+        sql = generate_data_sql(request.schema_sql, request.count)
+        return {"sql": sql}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/schemas")
 def get_schemas(db: Session = Depends(get_db)):
@@ -151,6 +198,14 @@ def ensure_storage_schema(db: Session):
             created_at TIMESTAMPTZ DEFAULT NOW()
         )
     """))
+    db.execute(text("""
+        CREATE TABLE IF NOT EXISTS sql_pro_storage.chat_history (
+            id         SERIAL PRIMARY KEY,
+            role       VARCHAR(20) NOT NULL,
+            content    TEXT NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        )
+    """))
     db.commit()
 
 @app.post("/files/save")
@@ -215,6 +270,54 @@ def delete_file(file_id: int, db: Session = Depends(get_db)):
         return {"success": True}
     except HTTPException:
         raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+@app.get("/ai/chat/history")
+def get_chat_history(db: Session = Depends(get_db)):
+    try:
+        ensure_storage_schema(db)
+        result = db.execute(text("SELECT role, content FROM sql_pro_storage.chat_history ORDER BY id ASC"))
+        history = [{"role": row[0], "content": row[1]} for row in result]
+        return {"history": history}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/ai/chat")
+def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
+    from ai_service import chat_sql_expert
+    try:
+        ensure_storage_schema(db)
+        # Fetch last 10 messages for context
+        result = db.execute(text("SELECT role, content FROM sql_pro_storage.chat_history ORDER BY id DESC LIMIT 10"))
+        history = [{"role": row[0], "content": row[1]} for row in result]
+        history.reverse()
+        
+        # Add new user message
+        history.append({"role": "user", "content": request.message})
+        
+        # Save user message to DB
+        db.execute(text("INSERT INTO sql_pro_storage.chat_history (role, content) VALUES ('user', :msg)"), {"msg": request.message})
+        
+        # Call AI
+        ai_response = chat_sql_expert(history)
+        
+        # Save AI response to DB
+        db.execute(text("INSERT INTO sql_pro_storage.chat_history (role, content) VALUES ('assistant', :msg)"), {"msg": ai_response})
+        db.commit()
+        
+        return {"response": ai_response}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/ai/chat/clear")
+def clear_chat_history(db: Session = Depends(get_db)):
+    try:
+        ensure_storage_schema(db)
+        db.execute(text("DELETE FROM sql_pro_storage.chat_history"))
+        db.commit()
+        return {"success": True}
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))

@@ -6,13 +6,17 @@ import SettingsModal from './components/SettingsModal';
 import SaveModal from './components/SaveModal';
 import SavedFilesPage from './components/SavedFilesPage';
 import TablePreviewModal from './components/TablePreviewModal';
+import AIWizardModal from './components/AIWizardModal';
+import ChatPanel from './components/ChatPanel';
 import { getTables, getSchemas, getSchemaDetails, executeQuery } from './api';
-import { Database, Settings, PanelLeftClose, PanelLeftOpen, Menu, Terminal } from 'lucide-react';
+import { Database, Settings, PanelLeftClose, PanelLeftOpen, Menu, Terminal, Sparkles, MessageSquare } from 'lucide-react';
 import './index.css';
 
 const SIDEBAR_MIN = 180;
 const SIDEBAR_MAX = 520;
 const SIDEBAR_DEFAULT = 280;
+const CHAT_MIN = 250;
+const CHAT_MAX = 600;
 const RESULTS_MIN_PCT = 12;
 const RESULTS_MAX_PCT = 75;
 const RESULTS_DEFAULT_PCT = 38;
@@ -48,6 +52,9 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSaveOpen, setIsSaveOpen] = useState(false);
   const [previewTable, setPreviewTable] = useState(null); // table name being previewed
+  const [isAiWizardOpen, setIsAiWizardOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatWidth, setChatWidth] = useState(350);
   const [enableSuggestions, setEnableSuggestions] = useState(true);
 
   const mainRef = useRef(null);
@@ -130,6 +137,28 @@ function App() {
     document.body.style.cursor = 'row-resize';
     document.body.style.userSelect = 'none';
   }, [resultsPct]);
+
+  // ── Chat drag resize ──────────────────────────────────────────────────────
+  const startChatDrag = useCallback((e) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = chatWidth;
+
+    const onMove = (ev) => {
+      const newW = Math.max(CHAT_MIN, Math.min(CHAT_MAX, startW - (ev.clientX - startX)));
+      setChatWidth(newW);
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [chatWidth]);
 
   // ── Data fetching ─────────────────────────────────────────────────────────
   const fetchSchemas = async () => {
@@ -229,6 +258,23 @@ function App() {
           >
             <Terminal size={20} />
           </button>
+
+          <button 
+            className={`icon-btn ${isChatOpen ? 'active' : ''}`}
+            onClick={() => setIsChatOpen(!isChatOpen)}
+            title="SQL Chat Assistant"
+          >
+            <MessageSquare size={20} />
+          </button>
+
+          {/* AI Generate Button */}
+          <button 
+            className="icon-btn ai-btn"
+            onClick={() => setIsAiWizardOpen(true)}
+            title="AI Table Generator"
+          >
+            <Sparkles size={20} color="var(--accent)" />
+          </button>
         </div>
       </header>
 
@@ -265,7 +311,8 @@ function App() {
       )}
 
       {/* ── Main Content ──────────────────────────────────────────── */}
-      <main className="main-content" ref={mainRef}>
+        <div className="main-content-wrapper">
+          <div className="app-content" ref={mainRef}>
         {currentView === 'editor' ? (
           <>
             {/* Editor */}
@@ -313,7 +360,20 @@ function App() {
             onLoadIntoEditor={handleLoadFromFile}
           />
         )}
-        </main>
+          </div>
+          {isChatOpen && (
+            <div
+              className="resize-handle-v chat-resize-handle"
+              onMouseDown={startChatDrag}
+              title="Drag to resize chat"
+            />
+          )}
+          <ChatPanel 
+            isOpen={isChatOpen} 
+            onClose={() => setIsChatOpen(false)} 
+            style={{ width: chatWidth, minWidth: chatWidth, maxWidth: chatWidth }}
+          />
+        </div>
       </div>
 
       {/* ── Mobile Bottom Nav ─────────────────────────────────────── */}
@@ -343,8 +403,15 @@ function App() {
           onClose={() => setPreviewTable(null)}
         />
       )}
+      <AIWizardModal
+        isOpen={isAiWizardOpen}
+        onClose={() => setIsAiWizardOpen(false)}
+        selectedSchema={selectedSchema}
+        onRefresh={handleRefresh}
+      />
+
     </div>
   );
-}
+};
 
 export default App;

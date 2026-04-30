@@ -54,3 +54,41 @@ export const deleteFile = async (id) => {
   const response = await api.delete(`/files/${id}`);
   return response.data;
 };
+
+// ── Settings (AI & Connection) ─────────────────────────────────────────────
+export const getAiSettings = async () => {
+  const response = await api.get('/settings/ai');
+  return response.data;
+};
+
+export const updateAiSettings = async (settings) => {
+  const response = await api.post('/settings/ai', settings);
+  return response.data;
+};
+
+// ── AI Generation ────────────────────────────────────────────────────────────
+export const aiGenerateSchema = async (prompt) => {
+  const response = await api.post('/ai/generate-schema', { prompt });
+  return response.data;
+};
+
+export const aiGenerateData = async (schemaSql, count) => {
+  const response = await api.post('/ai/generate-data', { schema_sql: schemaSql, count });
+  return response.data;
+};
+
+// ── AI Chat ──────────────────────────────────────────────────────────────────
+export const aiChat = async (message) => {
+  const response = await api.post('/ai/chat', { message });
+  return response.data;
+};
+
+export const getAiChatHistory = async () => {
+  const response = await api.get('/ai/chat/history');
+  return response.data;
+};
+
+export const clearAiChatHistory = async () => {
+  const response = await api.post('/ai/chat/clear');
+  return response.data;
+};

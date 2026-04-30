@@ -54,7 +54,8 @@ const SQLEditor = ({ query, setQuery, onExecute, onSave, isLoading, schemaDetail
   }, []);
 
   const handleKeyDown = (e) => {
-    if (e.ctrlKey && e.key === '/') {
+    // Shift + R to run (Note: this will trigger on uppercase 'R')
+    if (e.shiftKey && e.key === 'R') {
       e.preventDefault();
       handleRun();
     }
@@ -97,7 +98,7 @@ const SQLEditor = ({ query, setQuery, onExecute, onSave, isLoading, schemaDetail
         <div className="editor-title">
           <Code2 size={16} />
           SQL Editor
-          <span className="editor-hint">Ctrl+/ to run · Ctrl+S to save · select text to run selection</span>
+          <span className="editor-hint">Shift+R to run · Ctrl+S to save</span>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           {/* Draft saved indicator */}
@@ -116,7 +117,7 @@ const SQLEditor = ({ query, setQuery, onExecute, onSave, isLoading, schemaDetail
             disabled={isLoading || !query.trim()}
           >
             <Play size={16} fill="currentColor" />
-            {isLoading ? 'Running...' : 'Run (Ctrl+/)'}
+            {isLoading ? 'Running...' : 'Run (Shift+R)'}
           </button>
         </div>
       </div>

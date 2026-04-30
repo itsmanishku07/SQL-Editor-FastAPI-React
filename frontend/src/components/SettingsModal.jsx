@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Check, Database, Sparkles, AlertCircle, Eye, EyeOff, RefreshCw } from 'lucide-react';
-import { getDbUrl, updateDbUrl } from '../api';
+import { getDbUrl, updateDbUrl, getAiSettings, updateAiSettings } from '../api';
 
 const SettingsModal = ({ isOpen, onClose, enableSuggestions, setEnableSuggestions, onDbSaved }) => {
   const [dbUrl, setDbUrl] = useState('');
@@ -8,12 +8,20 @@ const SettingsModal = ({ isOpen, onClose, enableSuggestions, setEnableSuggestion
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
+  const [aiHost, setAiHost] = useState('');
+  const [aiToken, setAiToken] = useState('');
+  const [aiModel, setAiModel] = useState('');
+  const [showToken, setShowToken] = useState(false);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiMessage, setAiMessage] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
       setMessage(null);
       setError(null);
+      setAiMessage(null);
       fetchDbUrl();
+      fetchAiSettings();
     }
   }, [isOpen]);
 
@@ -45,6 +53,30 @@ const SettingsModal = ({ isOpen, onClose, enableSuggestions, setEnableSuggestion
       setError(err.response?.data?.detail || 'Failed to connect to the database. Please check the URL and try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchAiSettings = async () => {
+    try {
+      const data = await getAiSettings();
+      setAiHost(data.host || '');
+      setAiToken(data.token || '');
+      setAiModel(data.model || '');
+    } catch (err) {
+      console.error('Failed to fetch AI settings:', err);
+    }
+  };
+
+  const handleSaveAi = async () => {
+    setIsAiLoading(true);
+    setAiMessage(null);
+    try {
+      await updateAiSettings({ host: aiHost, token: aiToken, model: aiModel });
+      setAiMessage('AI settings updated!');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsAiLoading(false);
     }
   };
 
@@ -121,11 +153,78 @@ const SettingsModal = ({ isOpen, onClose, enableSuggestions, setEnableSuggestion
 
           <div className="settings-divider" />
 
-          {/* Autocomplete Toggle */}
+          {/* AI Settings Section */}
+          <div className="settings-group">
+            <label className="settings-label">
+              Databricks AI Assistant
+            </label>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Databricks Host URL</div>
+                <input
+                  type="text"
+                  className="settings-input"
+                  value={aiHost}
+                  onChange={(e) => setAiHost(e.target.value)}
+                  placeholder="https://adb-xxx.x.azuredatabricks.net"
+                />
+              </div>
+
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Personal Access Token</div>
+                <div className="settings-input-wrapper">
+                  <input
+                    type={showToken ? 'text' : 'password'}
+                    className="settings-input settings-input-with-btn"
+                    value={aiToken}
+                    onChange={(e) => setAiToken(e.target.value)}
+                    placeholder="dapi..."
+                  />
+                  <button
+                    className="input-action-btn"
+                    onClick={() => setShowToken(!showToken)}
+                    type="button"
+                  >
+                    {showToken ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Model Endpoint Name</div>
+                <input
+                  type="text"
+                  className="settings-input"
+                  value={aiModel}
+                  onChange={(e) => setAiModel(e.target.value)}
+                  placeholder="databricks-meta-llama-3-70b-instruct"
+                />
+              </div>
+
+              {aiMessage && (
+                <div className="settings-success" style={{ marginTop: 0 }}>
+                  <Check size={14} />
+                  <span>{aiMessage}</span>
+                </div>
+              )}
+
+              <button
+                className="run-button settings-save-btn"
+                onClick={handleSaveAi}
+                disabled={isAiLoading}
+              >
+                {isAiLoading ? <RefreshCw size={14} className="spin" /> : <Check size={14} />}
+                Update AI Configuration
+              </button>
+            </div>
+          </div>
+
+          <div className="settings-divider" />
+
           <div className="settings-group">
             <div className="settings-toggle-row">
               <div className="settings-label">
-                <Sparkles size={16} />
                 Intelligent Autocomplete
               </div>
               <label className="toggle-switch" aria-label="Toggle autocomplete">
