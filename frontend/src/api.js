@@ -4,6 +4,15 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
 });
 
+// Attach the dynamic Database URL to every request if it exists in localStorage
+api.interceptors.request.use((config) => {
+  const customDbUrl = localStorage.getItem('postgres_db_url');
+  if (customDbUrl) {
+    config.headers['X-Database-URL'] = customDbUrl;
+  }
+  return config;
+});
+
 export const getSchemas = async () => {
   const response = await api.get('/schemas');
   return response.data;

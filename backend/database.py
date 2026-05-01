@@ -1,7 +1,8 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 import os
 from dotenv import load_dotenv, set_key
+from functools import lru_cache
 
 env_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(dotenv_path=env_path)
@@ -13,22 +14,30 @@ DATABRICKS_HOST = os.getenv("DATABRICKS_HOST", "")
 DATABRICKS_TOKEN = os.getenv("DATABRICKS_TOKEN", "")
 DATABRICKS_MODEL_ENDPOINT = os.getenv("DATABRICKS_MODEL_ENDPOINT", "")
 
-engine = None
-SessionLocal = None
+# Cache engines to avoid re-creating them on every request
+@lru_cache(maxsize=10)
+def get_engine(url: str):
+    return create_engine(url, pool_pre_ping=True, pool_recycle=3600)
 
-def init_db(db_url: str):
-    global engine, SessionLocal, DATABASE_URL
-    DATABASE_URL = db_url
-    engine = create_engine(DATABASE_URL)
+def get_db(db_url_override: str = None):
+    url = db_url_override or DATABASE_URL
+    if not url:
+        raise Exception("Database URL not configured.")
+    
+    engine = get_engine(url)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-init_db(DATABASE_URL)
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 def update_db_url(new_url: str):
+    global DATABASE_URL
+    DATABASE_URL = new_url
     try:
         set_key(env_path, "DATABASE_URL", new_url)
     except: pass
-    init_db(new_url)
 
 def update_ai_settings(host: str, token: str, model: str):
     global DATABRICKS_HOST, DATABRICKS_TOKEN, DATABRICKS_MODEL_ENDPOINT
@@ -41,9 +50,9 @@ def update_ai_settings(host: str, token: str, model: str):
         set_key(env_path, "DATABRICKS_MODEL_ENDPOINT", model)
     except: pass
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+def get_ai_settings():
+    return {
+        "host": DATABRICKS_HOST,
+        "token": DATABRICKS_TOKEN,
+        "model": DATABRICKS_MODEL_ENDPOINT
+    }

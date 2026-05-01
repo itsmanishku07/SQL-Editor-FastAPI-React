@@ -32,6 +32,13 @@ const SettingsModal = ({ isOpen, onClose, enableSuggestions, setEnableSuggestion
   }, [isOpen, onClose]);
 
   const fetchDbUrl = async () => {
+    // Check localStorage first for dynamic URL
+    const localUrl = localStorage.getItem('postgres_db_url');
+    if (localUrl) {
+      setDbUrl(localUrl);
+      return;
+    }
+    
     try {
       const data = await getDbUrl();
       setDbUrl(data.db_url);
@@ -46,11 +53,20 @@ const SettingsModal = ({ isOpen, onClose, enableSuggestions, setEnableSuggestion
     setError(null);
     setMessage(null);
     try {
-      await updateDbUrl(dbUrl);
-      setMessage('Connected! Tables and schemas will refresh now.');
+      // 1. Store in localStorage for the frontend to use in headers
+      localStorage.setItem('postgres_db_url', dbUrl);
+      
+      // 2. Also try to update the server's default (optional fallback)
+      try { 
+        await updateDbUrl(dbUrl); 
+      } catch(e) { 
+        console.warn("Could not update server default, using local header."); 
+      }
+      
+      setMessage('Settings saved! Connecting to your database...');
       onDbSaved(); // trigger parent to reload schemas/tables
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to connect to the database. Please check the URL and try again.');
+      setError(err.response?.data?.detail || 'Failed to connect. Please check the URL.');
     } finally {
       setIsLoading(false);
     }
@@ -138,17 +154,41 @@ const SettingsModal = ({ isOpen, onClose, enableSuggestions, setEnableSuggestion
                 <span>{message}</span>
               </div>
             )}
-            <button
-              className="run-button settings-save-btn"
-              onClick={handleSave}
-              disabled={isLoading || !dbUrl.trim()}
-            >
-              {isLoading ? (
-                <><RefreshCw size={16} className="spin" /> Testing connection...</>
-              ) : (
-                <><Check size={16} /> Save &amp; Connect</>
-              )}
-            </button>
+            
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+              <button
+                className="run-button settings-save-btn"
+                onClick={handleSave}
+                disabled={isLoading || !dbUrl.trim()}
+                style={{ flex: 2 }}
+              >
+                {isLoading ? (
+                  <><RefreshCw size={16} className="spin" /> Testing...</>
+                ) : (
+                  <><Check size={16} /> Save &amp; Connect</>
+                )}
+              </button>
+              
+              <button
+                className="run-button"
+                onClick={() => {
+                  localStorage.removeItem('postgres_db_url');
+                  fetchDbUrl();
+                  setMessage('Reset to server default. Refreshing...');
+                  setTimeout(() => onDbSaved(), 500);
+                }}
+                style={{ flex: 1, background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
+                title="Reset to server default"
+              >
+                Reset
+              </button>
+            </div>
+            
+            {localStorage.getItem('postgres_db_url') && (
+              <div style={{ marginTop: '0.75rem', fontSize: '0.7rem', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Check size={10} /> Using custom local connection
+              </div>
+            )}
           </div>
 
           <div className="settings-divider" />

@@ -1,12 +1,13 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
-from database import get_db
+import database
 import time
 import base64
+import re
 
 app = FastAPI(title="Postgres SQL Query Tool")
 
@@ -17,6 +18,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+def get_db_with_header(x_database_url: Optional[str] = Header(None)):
+    yield from database.get_db(db_url_override=x_database_url)
+
+# Helper to use the new dependency
+def get_db(db: Session = Depends(get_db_with_header)):
+    return db
 
 class QueryRequest(BaseModel):
     query: str
@@ -51,23 +59,22 @@ def read_root():
     return {"message": "Postgres Query API is running"}
 
 @app.get("/settings/db-url")
-def get_db_url():
+def get_db_url(db: Session = Depends(get_db), x_database_url: Optional[str] = Header(None)):
+    # If header exists, that IS the current URL
+    if x_database_url:
+        return {"db_url": x_database_url}
     from database import DATABASE_URL
     return {"db_url": DATABASE_URL}
 
 @app.post("/settings/db-url")
-def update_db_url_endpoint(settings: SettingsUpdate):
+def update_db_url_endpoint(settings: SettingsUpdate, db: Session = Depends(get_db)):
     from database import update_db_url
     try:
-        from sqlalchemy import create_engine
-        temp_engine = create_engine(settings.db_url)
-        with temp_engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-            
+        # The update_db_url function updates the global/env default
         update_db_url(settings.db_url)
-        return {"success": True, "message": "Database connection updated successfully."}
+        return {"success": True, "message": "Default database connection updated successfully."}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to connect: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Failed to update default connection: {str(e)}")
 @app.get("/settings/ai")
 def get_ai_settings():
     from database import DATABRICKS_HOST, DATABRICKS_TOKEN, DATABRICKS_MODEL_ENDPOINT
