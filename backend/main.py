@@ -162,15 +162,24 @@ def get_schema_details(schema: str = "public", db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Global cache to track initialized databases in this container
+_initialized_dbs = set()
+
+def ensure_storage_schema_cached(db: Session, db_url: str):
+    if db_url in _initialized_dbs:
+        return
+    ensure_storage_schema(db)
+    _initialized_dbs.add(db_url)
+
 @app.post("/execute", response_model=QueryResponse)
-def execute_query(request: QueryRequest, db: Session = Depends(get_db)):
+def execute_query(request: QueryRequest, db: Session = Depends(get_db), x_database_url: Optional[str] = Header(None)):
     start_time = time.time()
-    error_msg = None
-    row_count = 0
-    execution_time = 0
+    
+    # Use the header URL or default for the cache key
+    db_key = x_database_url or "default"
     
     try:
-        ensure_storage_schema(db)
+        ensure_storage_schema_cached(db, db_key)
         if request.schema_name:
             db.execute(text(f'SET search_path TO "{request.schema_name}", public'))
 

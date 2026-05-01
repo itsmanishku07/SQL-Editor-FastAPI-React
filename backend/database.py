@@ -17,7 +17,14 @@ DATABRICKS_MODEL_ENDPOINT = os.getenv("DATABRICKS_MODEL_ENDPOINT", "")
 # Cache engines to avoid re-creating them on every request
 @lru_cache(maxsize=10)
 def get_engine(url: str):
-    return create_engine(url, pool_pre_ping=True, pool_recycle=3600)
+    # Optimized for serverless: fast connect, single connection pool
+    return create_engine(
+        url, 
+        pool_size=1, 
+        max_overflow=0,
+        pool_pre_ping=True,
+        connect_args={"connect_timeout": 5}
+    )
 
 def get_db(db_url_override: str = None):
     url = db_url_override or DATABASE_URL
