@@ -92,3 +92,33 @@ export const clearAiChatHistory = async () => {
   const response = await api.post('/ai/chat/clear');
   return response.data;
 };
+
+// ── Query Analysis & History ────────────────────────────────────────────────
+export const analyzeQuery = async (query, schemaName) => {
+  const response = await api.post('/analyze', { query, schema_name: schemaName });
+  return response.data;
+};
+
+export const getQueryHistory = async (limit = 50) => {
+  const response = await api.get(`/history?limit=${limit}`);
+  return response.data;
+};
+
+// ── Learning Mode ────────────────────────────────────────────────────────────
+export const generateChallenge = async (tableNames, difficulty, schemaName = 'public') => {
+  const response = await api.post('/ai/generate-challenge', {
+    table_names: tableNames,
+    difficulty,
+    schema_name: schemaName
+  });
+  return response.data;
+};
+
+export const verifyChallenge = async (userSql, solutionSql, schemaName = 'public') => {
+  const response = await api.post('/challenge/verify', {
+    user_sql: userSql,
+    solution_sql: solutionSql,
+    schema_name: schemaName
+  });
+  return response.data;
+};

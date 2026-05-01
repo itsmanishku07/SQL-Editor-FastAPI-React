@@ -1,22 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Database, Table, Settings, FileText, X, PanelLeftClose, Eye, ChevronDown, Check, RefreshCw } from 'lucide-react';
+import { Database, Table, Settings, FileText, X, PanelLeftClose, Eye, ChevronDown, Check, RefreshCw, History, AlertCircle, Trophy } from 'lucide-react';
+import { getQueryHistory } from '../api';
 
 const Sidebar = ({
   tables, onTableClick, schemas, selectedSchema, onSchemaChange,
   onOpenSettings, currentView, onViewChange,
   isOpen, onClose, onHide, style, onPreviewTable, onRefresh, isLoading,
+  onHistoryClick
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const dropdownRef = useRef(null);
 
   const handleTableClick = (table) => {
     onTableClick(table);
-    onClose?.(); // close drawer on mobile after picking a table
+    onClose?.(); 
   };
 
   const handleViewChange = (view) => {
     onViewChange(view);
-    onClose?.(); // close drawer on mobile after switching view
+    onClose?.();
   };
 
   const handleSchemaSelect = (schema) => {
@@ -24,7 +28,24 @@ const Sidebar = ({
     setIsDropdownOpen(false);
   };
 
-  // Close dropdown when clicking outside
+  const fetchHistory = async () => {
+    setIsHistoryLoading(true);
+    try {
+      const data = await getQueryHistory(30);
+      setHistory(data.history);
+    } catch (err) {
+      console.error('Failed to fetch history:', err);
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentView === 'history') {
+      fetchHistory();
+    }
+  }, [currentView]);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -37,14 +58,12 @@ const Sidebar = ({
 
   return (
     <>
-      {/* Mobile backdrop overlay */}
       {isOpen && (
         <div className="sidebar-overlay" onClick={onClose} aria-hidden="true" />
       )}
 
       <aside className={`sidebar ${isOpen ? 'sidebar--open' : ''}`} style={style}>
 
-        {/* Nav Tabs */}
         <div className="sidebar-nav">
           <button
             className={`sidebar-nav-btn ${currentView === 'editor' ? 'sidebar-nav-btn--active' : ''}`}
@@ -53,17 +72,21 @@ const Sidebar = ({
             <Database size={15} /> Editor
           </button>
           <button
+            className={`sidebar-nav-btn ${currentView === 'history' ? 'sidebar-nav-btn--active' : ''}`}
+            onClick={() => handleViewChange('history')}
+          >
+            <History size={15} /> History
+          </button>
+          <button
             className={`sidebar-nav-btn ${currentView === 'files' ? 'sidebar-nav-btn--active' : ''}`}
             onClick={() => handleViewChange('files')}
           >
-            <FileText size={15} /> Saved Files
+            <FileText size={15} /> Files
           </button>
         </div>
 
-        {/* Schema + Tables (only in editor view) */}
         {currentView === 'editor' && (
           <>
-            {/* Schema Label + Selector */}
             <div className="schema-selector-container">
               <div className="schema-label">Schema</div>
               <div className="schema-select-wrapper" ref={dropdownRef}>
@@ -92,7 +115,6 @@ const Sidebar = ({
               </div>
             </div>
 
-            {/* Tables Header */}
             <div className="tables-label">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Table size={13} /> Tables
@@ -110,7 +132,6 @@ const Sidebar = ({
               </div>
             </div>
 
-            {/* Table List */}
             <div className="table-list">
               {tables.length === 0 ? (
                 <div style={{ padding: '1.5rem', color: 'var(--text-secondary)', textAlign: 'center', fontSize: '0.85rem' }}>
@@ -128,7 +149,7 @@ const Sidebar = ({
                     <button
                       className="table-preview-btn"
                       onClick={(e) => {
-                        e.stopPropagation(); // don't trigger the SELECT * click
+                        e.stopPropagation();
                         onPreviewTable?.(table);
                       }}
                       title={`Preview ${table}`}
@@ -140,6 +161,64 @@ const Sidebar = ({
               )}
             </div>
           </>
+        )}
+
+        {currentView === 'history' && (
+          <div className="history-list" style={{ overflowY: 'auto', flex: 1 }}>
+            <div className="tables-label" style={{ padding: '1rem 1.25rem' }}>
+               Recent Queries
+               <button className="sidebar-refresh-btn" onClick={fetchHistory} disabled={isHistoryLoading}>
+                 <RefreshCw size={12} className={isHistoryLoading ? 'spin' : ''} />
+               </button>
+            </div>
+            {history.length === 0 ? (
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                {isHistoryLoading ? 'Loading history...' : 'No history found'}
+              </div>
+            ) : (
+              history.map((item) => (
+                <div 
+                  key={item.id} 
+                  className="history-item" 
+                  onClick={() => { onHistoryClick(item.query); handleViewChange('editor'); }}
+                  style={{ 
+                    padding: '0.75rem 1rem', 
+                    borderBottom: '1px solid var(--border-color)', 
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    transition: 'background 0.2s'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                    <span style={{ 
+                      color: item.status === 'success' ? 'var(--success)' : 'var(--error)',
+                      fontWeight: 600,
+                      fontSize: '0.7rem',
+                      textTransform: 'uppercase'
+                    }}>
+                      {item.status}
+                    </span>
+                    <span style={{ opacity: 0.5, fontSize: '0.7rem' }}>{item.execution_time_ms}ms</span>
+                  </div>
+                  <div style={{ 
+                    color: 'var(--text-primary)', 
+                    fontFamily: 'Fira Code, monospace',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    opacity: 0.8
+                  }}>
+                    {item.query}
+                  </div>
+                  {item.status === 'error' && (
+                    <div style={{ color: 'var(--error)', fontSize: '0.7rem', marginTop: '0.25rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {item.error_message}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         )}
       </aside>
     </>

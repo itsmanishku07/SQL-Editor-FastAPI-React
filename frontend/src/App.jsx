@@ -8,8 +8,9 @@ import SavedFilesPage from './components/SavedFilesPage';
 import TablePreviewModal from './components/TablePreviewModal';
 import AIWizardModal from './components/AIWizardModal';
 import ChatPanel from './components/ChatPanel';
+import PracticePage from './components/PracticePage';
 import { getTables, getSchemas, getSchemaDetails, executeQuery } from './api';
-import { Database, Settings, PanelLeftClose, PanelLeftOpen, Menu, Terminal, Sparkles, MessageSquare } from 'lucide-react';
+import { Database, Settings, PanelLeftClose, PanelLeftOpen, Menu, Terminal, Sparkles, MessageSquare, Trophy } from 'lucide-react';
 import './index.css';
 
 const SIDEBAR_MIN = 180;
@@ -43,7 +44,11 @@ function App() {
   const [isDraggingSplit, setIsDraggingSplit] = useState(false);
 
   const [schemas, setSchemas] = useState(['public']);
-  const [selectedSchema, setSelectedSchema] = useState('public');
+  const [selectedSchema, setSelectedSchema] = useState(localStorage.getItem('default_schema') || 'public');
+
+  useEffect(() => {
+    localStorage.setItem('default_schema', selectedSchema);
+  }, [selectedSchema]);
   const [tables, setTables] = useState([]);
   const [schemaDetails, setSchemaDetails] = useState({});
   const [query, setQuery] = useState('');
@@ -235,46 +240,57 @@ function App() {
         </div>
 
         <div className="header-right">
-          <button className="icon-btn" onClick={() => setIsSettingsOpen(true)} title="Settings">
-            <Settings size={20} />
+          <button
+            className={`header-text-btn ${currentView === 'editor' ? 'active' : ''}`}
+            onClick={() => setCurrentView('editor')}
+          >
+            Home
           </button>
 
-          {/* Sidebar Toggle (Desktop + Mobile) */}
+          <button
+            className={`header-text-btn ${currentView === 'practice' ? 'active' : ''}`}
+            onClick={() => setCurrentView('practice')}
+          >
+            Practice
+          </button>
+
+          <button
+            className="header-text-btn"
+            onClick={() => setIsChatOpen(!isChatOpen)}
+          >
+            Assistant
+          </button>
+
+          <button
+            className="header-text-btn"
+            onClick={() => setIsAiWizardOpen(true)}
+          >
+            Create Table
+          </button>
+
+          <button
+            className="header-text-btn"
+            onClick={() => setIsSettingsOpen(true)}
+          >
+            Settings
+          </button>
+
+          <div style={{ width: '1px', height: '20px', backgroundColor: 'var(--border-color)', margin: '0 0.5rem' }}></div>
+
           <button
             className="icon-btn"
-            onClick={() => {
-              if (window.innerWidth <= 768) setIsSidebarOpen(true);
-              else setIsSidebarVisible(!isSidebarVisible);
-            }}
-            title={isSidebarVisible ? "Hide sidebar" : "Show sidebar"}
+            onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+            title="Toggle Sidebar"
           >
-            {isMobile ? <Menu size={20} /> : (isSidebarVisible ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />)}
+            {isSidebarVisible ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
           </button>
 
-          {/* Results Toggle */}
           <button
-            className={`icon-btn ${isResultsVisible ? 'active' : ''}`}
+            className="icon-btn"
             onClick={() => setIsResultsVisible(!isResultsVisible)}
-            title={isResultsVisible ? "Hide results" : "Show results"}
+            title="Toggle Results"
           >
-            <Terminal size={20} />
-          </button>
-
-          <button
-            className={`icon-btn ${isChatOpen ? 'active' : ''}`}
-            onClick={() => setIsChatOpen(!isChatOpen)}
-            title="SQL Chat Assistant"
-          >
-            <MessageSquare size={20} />
-          </button>
-
-          {/* AI Generate Button */}
-          <button
-            className="icon-btn ai-btn"
-            onClick={() => setIsAiWizardOpen(true)}
-            title="AI Table Generator"
-          >
-            <Sparkles size={20} color="var(--accent)" />
+            <Terminal size={18} />
           </button>
         </div>
       </header>
@@ -299,6 +315,7 @@ function App() {
             onPreviewTable={(table) => setPreviewTable(table)}
             onRefresh={handleRefresh}
             isLoading={isLoading}
+            onHistoryClick={(q) => setQuery(q)}
           />
         )}
 
@@ -351,10 +368,20 @@ function App() {
                       results={results}
                       error={error}
                       onHide={() => setIsResultsVisible(false)}
+                      query={query}
+                      schema={selectedSchema}
                     />
                   </div>
                 )}
               </>
+            ) : currentView === 'practice' ? (
+              <PracticePage
+                tables={tables}
+                selectedSchema={selectedSchema}
+                schemaDetails={schemaDetails}
+                schemas={schemas}
+                onSchemaChange={setSelectedSchema}
+              />
             ) : (
               <SavedFilesPage
                 onBack={() => setCurrentView('editor')}
@@ -385,6 +412,13 @@ function App() {
         >
           <Database size={20} />
           <span>Editor</span>
+        </button>
+        <button
+          className={`bottom-nav-btn ${currentView === 'practice' ? 'bottom-nav-btn--active' : ''}`}
+          onClick={() => setCurrentView('practice')}
+        >
+          <Trophy size={20} />
+          <span>Practice</span>
         </button>
         <button
           className={`bottom-nav-btn ${currentView === 'files' ? 'bottom-nav-btn--active' : ''}`}
